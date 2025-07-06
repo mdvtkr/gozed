@@ -1,0 +1,21 @@
+[project]
+name = "gozed"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "mdvtkr",email = "mdvtkr@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "discord-webhook (>=1.4.1,<2.0.0)",
+    "seleniummm @ git+https://github.com/mdvtkr/seleniummm.git",
+    "tedious @ git+https://github.com/mdvtkr/tedious.git"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry_bumpversion.file."src/__init__.py"]
