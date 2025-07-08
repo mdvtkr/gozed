@@ -1,38 +1,28 @@
 import multiprocessing
 multiprocessing.freeze_support()
 from seleniummm import WebDriver
-import sys
+import sys, os
 from pathlib import Path
 from discord_webhook import DiscordWebhook
 from datetime import datetime
 import time
 import traceback
+import json
 
 
 if __name__ == '__main__':
-    if getattr(sys, 'frozen', False):
-      # runned executable built by pyinstaller
-      root_path = str(Path(sys.executable).parent)
-    else:
-      root_path = './'
-    
-    browser = WebDriver(visible=True, 
-                # driver_preference='standard',
-    )
-
     def handle_cookie():
       try:
         browser.wait_until_element_presence(tag='kc-global-cookie-banner')
         # cookie
         shadow = browser.find_element(tag='kc-global-cookie-banner').shadow_root
-        time.sleep(5)
+        time.sleep(10)
         cookie_setting_btn = browser.find_element(shadow, id='biscuitPopupBtn')
         browser.click(cookie_setting_btn)
-        time.sleep(5)
+        time.sleep(10)
       except Exception as e:
         print('cookie banner button not found')
         traceback.print_exc()
-        return False
 
       try:
         browser.wait_until_element_presence(css='.hydrated')
@@ -44,45 +34,45 @@ if __name__ == '__main__':
             browser.click(opt)
         confirm_btn = browser.find_element(popup_shadow, css='button.confirm')
         browser.click(confirm_btn)
-        time.sleep(5)
+        time.sleep(10)
         print('cookie handled')
       except Exception as e:
         print('cookie popup processing failed')
         traceback.print_exc()
-        return False
-      return True
 
     def login():
       browser.wait_until_element_clickable(css='ke-text-input input')
       id_dom = browser.find_element(css='ke-text-input input')
-      id_dom.send_keys()
+      id_dom.send_keys(priv['KE']['id'])
       pw_dom = browser.find_element(css='ke-password-input input')
-      pw_dom.send_keys()
+      pw_dom.send_keys(priv['KE']['pw'])
       browser.click(css='.login__submit-act')
-      time.sleep(7)
+      time.sleep(10)
       print('logged in')
 
     def go_zed_page():
       print('go zed page')
-      time.sleep(5)
+      time.sleep(10)
       shadow = browser.wait_until_element_presence(css='kc-global-floating-button').shadow_root
       zed_btn = browser.find_element(shadow, id='ke-zed-button')
       browser.click(zed_btn)
-      browser.sleep(8)
+      browser.sleep(10)
       browser.wait_until_window_number_to_be(2)
       browser.switch_to_window(1)
 
     def my_zed_itinerary():
+      print('my zed itinerary')
       # 나의 항공권으로 이동
       try:
         my_itinerary_btn = browser.wait_until_element_clickable(xpath='//span[text()="나의 항공권"]')
         browser.click(my_itinerary_btn)
       except:
         print('나의 항공권 button not found')
-        
+      
+      time.sleep(10)
       browser.wait_until_element_presence(xpath='//span[text()="예약/리스팅 현황"]')
 
-      time.sleep(5)   # StaleElementReferenceException. maybe refering itinerary before it completed.
+      time.sleep(15)   # StaleElementReferenceException. maybe refering itinerary before it completed.
       itineraries = browser.find_elements(xpath='//span[text()="예약/리스팅 현황"]/following-sibling::div/div')
       listings = []
       for it in itineraries:
@@ -112,9 +102,30 @@ if __name__ == '__main__':
               listings.append(listing_info.copy())
       return listings
     
-    def send_discord(items, format_string):
-      discord = DiscordWebhook(url=)
-      content = f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n'
+    def notice_error(comment):
+      discord = DiscordWebhook(url=priv['Discord']['monitor'])
+      content = f'====== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} =====\n'
+      if comment != None:
+        content += comment + '\n'
+      endline = '=' * (len(content)-1) + '\n'
+      lines = traceback.format_exception(value=e).split('\n')
+      for l in lines:
+        if(len(content) + len(l) < 2000):
+          content += l + '\n'
+        else:
+          discord.set_content(content)
+          discord.execute()
+          print(content)
+          content = l + '\n'
+      content += endline
+      discord.set_content(content)
+      discord.execute()
+      print(content)
+
+    def notice_data(items, format_string):
+      discord = DiscordWebhook(url=priv['Discord']['notice'])
+      content = f'====== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} =====\n'
+      endline = '=' * (len(content)-1) + '\n'
       for item in items:
         l = format_string.format(**item)
         if(len(content) + len(l) < 2000):
@@ -122,10 +133,10 @@ if __name__ == '__main__':
         else:
           discord.set_content(content)
           discord.execute()
-          content = ''
-      if len(content) > 0:
-        discord.set_content(content)
-        discord.execute()
+          content = l + '\n'
+      content += endline
+      discord.set_content(content)
+      discord.execute()
 
 
     def go_zed_home():
@@ -133,6 +144,7 @@ if __name__ == '__main__':
       browser.wait_until_element_clickable(xpath='//span[text()="나의 항공권"]')
 
     def go_to_oal():
+      print('go to oal')
       def conv_date(input_date):
         date_obj = datetime.strptime(f"{input_date} {datetime.now().year}", "%d %B %Y")
         korean_weekdays = ['월', '화', '수', '목', '금', '토', '일']
@@ -146,7 +158,7 @@ if __name__ == '__main__':
       browser.click(xpath='//*[contains(text(), "myIDTravel")]')
       btns = browser.wait_until_elements_visible(xpath='//*[@role="dialog"]//button') # 0: checkbox, 1: 다음
       browser.click(btns[0])
-      browser.sleep(1)
+      browser.sleep(3)
       browser.click(btns[1])
       browser.sleep(5)
 
@@ -158,64 +170,92 @@ if __name__ == '__main__':
       browser.click(xpath='//div[@class="modal-content"]//button')
 
       listings = []
-      time.sleep(5)
+      time.sleep(10)
       itineraries = browser.find_elements(xpath='//div[@class[contains(., "_flightCardContainer_")]]')
       for it in itineraries:
         for idx, ch in enumerate(browser.find_children(it, xpath='./div')):
+          # print(f'{idx} - {ch.text}')
           if idx == 0:  # PNR
             tokens = ch.text.strip().splitlines()
             listing_info = {}
             listing_info['id'] = tokens[1].split(':')[1]
           elif idx == 1: # passengers
             listing_info['passenger'] = ch.text.replace('\n', ', ')
-          elif idx == 2: # route
-            tokens = ch.text.strip().splitlines()
-            listing_info['flt'] = tokens[0]
-            listing_info['date'] = conv_date(tokens[1])
-            dep_airport = tokens[2].split(' - ')[0]
-            arr_airport = tokens[2].split(' - ')[1]
-            dep_time = tokens[3].split(' - ')[0].replace(':','')
-            arr_time = tokens[3].split(' - ')[1].split(' | ')[0].replace(':','')
-            listing_info['dep'] = f"{dep_airport}{dep_time}"
-            listing_info['arr'] = f"{arr_airport}{arr_time}"
-            listing_info['duration'] = tokens[3].split(' | ')[1].replace(':','')
+          elif '_startPageFlightCardContainer_' in ch.get_attribute('class'): # route
+            routes = browser.find_elements(ch, xpath='.//div[@class[contains(., "_startPageFlightCardDetails_")]]')
+            for route in routes:
+              tokens = ch.text.strip().splitlines()
+              listing_info['flt'] = tokens[0]
+              listing_info['date'] = conv_date(tokens[1])
+              dep_airport = tokens[2].split(' - ')[0]
+              arr_airport = tokens[2].split(' - ')[1]
+              dep_time = tokens[3].split(' - ')[0].replace(':','')
+              arr_time = tokens[3].split(' - ')[1].split(' | ')[0].replace(':','')
+              listing_info['dep'] = f"{dep_airport}{dep_time}"
+              listing_info['arr'] = f"{arr_airport}{arr_time}"
+              listing_info['duration'] = tokens[3].split(' | ')[1].replace(':','')
+              listing_info['booking_cls'] = tokens[4]
 
-            # query detail
-            expand_btn = browser.find_element(ch, xpath='.//div[@class[contains(., "_containerFlightLoadRBD_")]]')
-            browser.mouse_over(expand_btn)
-            browser.click(expand_btn)
+              # query detail
+              expand_btn = browser.find_element(route, xpath='.//div[@class[contains(., "_containerFlightLoadRBD_")]]')
+              for i in range(0, 100):
+                try:
+                  browser.click(expand_btn)
+                  break
+                except:
+                  browser.find_element(tag='body').send_keys("\ue015")  # Keys.DOWN
+                  browser.mouse_over(expand_btn)
+                  time.sleep(5)
 
-            detail_popup = browser.wait_until_element_visible(xpath='//div[@class[contains(., "_popupContainer_")]]')
-            listing_info['status'] = detail_popup.text.replace('\n', ' ')
-            if (cr_point:=listing_info['status'].find('Y')) != -1:
-              listing_info['status'] = listing_info['status'][:cr_point-1] + '\n' + listing_info['status'][cr_point:]
+              detail_popup = browser.wait_until_element_visible(xpath='//div[@class[contains(., "_popupContainer_")]]')
+              listing_info['status'] = detail_popup.text.replace('\n', ' ')
+              if (cr_point:=listing_info['status'].find('Y')) != -1:
+                listing_info['status'] = listing_info['status'][:cr_point-1] + '\n' + listing_info['status'][cr_point:]
 
-            browser.click(expand_btn)
-            browser.wait_until_element_invisible(xpath='//div[@class[contains(., "_popupContainer_")]]')
-
-          elif idx == 3:
-            listings.append(listing_info.copy())
+              browser.click(expand_btn)
+              time.sleep(3)
+              browser.wait_until_element_invisible(xpath='//div[@class[contains(., "_popupContainer_")]]')
+              listings.append(listing_info.copy())
       return listings
 
+    browser = None
     try:
+      if getattr(sys, 'frozen', False):
+        # runned executable built by pyinstaller
+        root_path = str(Path(sys.executable).parent)
+      else:
+        root_path = './'
+
+      try:
+        with open(root_path + 'settings.json') as settings_file:
+          settings = json.load(settings_file)
+        with open(root_path + 'priv.json', mode="rt") as priv_file:
+          priv = json.load(priv_file)
+      except Exception as e:
+        notice_error('configuration file loading failed.')
+        raise e
+      
+      browser = WebDriver(visible=True, 
+                  # driver_preference='standard',
+                # profile=settings['ChromeProfile']
+      )
       browser.get('https://www.koreanair.com/login?returnUrl=%2F')
 
-      if not handle_cookie():
-        raise Exception('cookie handling failed')
-      
+      handle_cookie()      
       login()
       go_zed_page()
 
       listings = my_zed_itinerary()
-      send_discord(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})---------------')
+      notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
 
       oal_listings = go_to_oal()
-      send_discord(oal_listings, '[{date} {flt}]\n{status}\n{passenger}\n{dep}-{arr} ({duration})\n({id})---------------')
+      notice_data(oal_listings, '[{date} {flt}]\n{status}\n<{booking_cls}>{passenger}\n{dep}-{arr} ({duration})\n({id})')
       
 
     except Exception as e:
       traceback.print_exc()
-      print(traceback.format_exception(e))
+      notice_error()
        
     finally:
-      browser.quit()
+      if browser:
+        browser.quit()
