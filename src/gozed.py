@@ -102,7 +102,7 @@ if __name__ == '__main__':
               listings.append(listing_info.copy())
       return listings
     
-    def notice_error(comment):
+    def notice_error(comment=None):
       discord = DiscordWebhook(url=priv['Discord']['monitor'])
       content = f'====== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} =====\n'
       if comment != None:
