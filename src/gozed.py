@@ -140,7 +140,8 @@ if __name__ == '__main__':
 
 
     def go_zed_home():
-      browser.get('https://zed.koreanair.com/')
+      browser.get('https://www.koreanair.com/')
+      go_zed_page()
       browser.wait_until_element_clickable(xpath='//span[text()="나의 항공권"]')
 
     def go_to_oal():
@@ -156,6 +157,9 @@ if __name__ == '__main__':
 
       browser.click(xpath='//button[text()="OAL"]')
       browser.click(xpath='//*[contains(text(), "myIDTravel")]')
+
+      # EULA
+      print('myIDTravel EULA')
       btns = browser.wait_until_elements_visible(xpath='//*[@role="dialog"]//button') # 0: checkbox, 1: 다음
       browser.click(btns[0])
       browser.sleep(3)
@@ -243,10 +247,67 @@ if __name__ == '__main__':
 
       handle_cookie()      
       login()
-      go_zed_page()
+      # go_zed_page()
 
-      listings = my_zed_itinerary()
-      notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
+      # listings = my_zed_itinerary()
+      # notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
+
+      # port: IATA Code (capital)
+      # date: YYYYMMDD
+      def query_zed_status(dep_port, arr_port, dep_date, arr_date):
+        dep_year = dep_date[:4]
+        dep_month = dep_date[4:6]
+        dep_day = dep_date[6:]
+        arr_year = arr_date[:4]
+        arr_month = arr_date[4:6]
+        arr_day = arr_date[6:]
+
+         # 0: dep_port
+         # 1: arr_port
+         # 2: dep/arr date
+         # 3: passenger
+        input_doms = browser.find_elements(xpath='//button[@aria-haspopup="dialog"]')
+        
+        # dep_port
+        browser.click(input_doms[0])
+        browser.wait_until_element_clickable(xpath='//input[@placeholder="도시, 공항"]').send_keys(dep_port)
+        browser.click(browser.wait_until_element_clickable(xpath=f'//div[@data-value="{dep_port}"]'))
+
+        # arr_port
+        browser.click(input_doms[1])
+        browser.wait_until_element_clickable(xpath='//input[@placeholder="도시, 공항"]').send_keys(arr_port)
+        browser.click(browser.wait_until_element_clickable(xpath=f'//div[@data-value="{arr_port}"]'))
+
+        # dep/arr date
+        browser.click(input_doms[2])  # open calendar
+        for i in range(5):  # move to today if it is not
+          arrows = browser.find_elements(xpath='//div[@data-side="bottom"]/div/div/div//*[name()="svg"]')
+          browser.click(arrows[0])
+          time.sleep(2)
+          
+        # find dep date calendar
+        dep_calendar = None
+        for i in range(5):
+          calenders = browser.wait_until_elements_presence(xpath='//div[@data-side="bottom"]/div/div/div')
+          if f'{dep_year}.{dep_month}' in calenders[0].text:
+            dep_calendar = calenders[0]
+            break
+          elif'{dep_year}.{dep_month}' in calenders[1].text:
+            dep_calendar = calenders[1]
+            break
+          else:
+            right_arrow = browser.find_element(calenders[1], xpath='.//*[name()="svg"]')
+            browser.click(right_arrow)
+          time.sleep(2)
+        
+        if(dep_calendar == None):
+          print('depature date is not in window')
+          return None
+        
+        # select dep date
+
+
+
 
       oal_listings = go_to_oal()
       notice_data(oal_listings, '[{date} {flt}]\n{status}\n<{booking_cls}>{passenger}\n{dep}-{arr} ({duration})\n({id})')
