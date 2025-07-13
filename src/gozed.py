@@ -302,10 +302,11 @@ if __name__ == '__main__':
         
         if(dep_calendar == None):
           print('depature date is not in window')
-          return None
+          # return None
         
         # select dep date
-
+        date_dom = browser.find_element(dep_calendar, xpath='.//div[text()="{dep_day}"]')
+        browser.click(date_dom)
 
 
 
