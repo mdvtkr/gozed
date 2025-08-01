@@ -8,7 +8,37 @@ from datetime import datetime
 import time
 import traceback
 import json
+import os
+os.environ['LANG'] = 'ko_KR.UTF-8'
+os.environ['LC_ALL'] = 'ko_KR.UTF-8'
 
+indicators = {
+  'en-US': {
+    'KE': {
+      'ticket_btn': 'My ticket',
+      'status_btn': 'Booking/Standby Status',
+      'day': 'd',
+      'airport': 'City, airport'
+    },
+    'OAL': {
+
+    }
+  },
+  'ko-KR': {
+    'KE': {
+      'ticket_btn': '나의 항공권',
+      'status_btn': '예약/리스팅 현황',
+      'day': '일',
+      'airport': '도시, 공항'
+    },
+    'OAL': {
+
+    }
+  }
+}
+indicators['en'] = indicators['en-US']
+indicators['ko'] = indicators['ko-KR']
+locale = 'ko'
 
 if __name__ == '__main__':
     def handle_cookie():
@@ -41,39 +71,49 @@ if __name__ == '__main__':
         traceback.print_exc()
 
     def login():
-      browser.wait_until_element_clickable(css='ke-text-input input')
-      id_dom = browser.find_element(css='ke-text-input input')
-      id_dom.send_keys(priv['KE']['id'])
-      pw_dom = browser.find_element(css='ke-password-input input')
-      pw_dom.send_keys(priv['KE']['pw'])
-      browser.click(css='.login__submit-act')
-      time.sleep(10)
-      print('logged in')
+      try:
+        browser.wait_until_element_clickable(css='ke-text-input input')
+        id_dom = browser.find_element(css='ke-text-input input')
+        id_dom.send_keys(priv['KE']['id'])
+        pw_dom = browser.find_element(css='ke-password-input input')
+        pw_dom.send_keys(priv['KE']['pw'])
+        browser.click(css='.login__submit-act')
+        time.sleep(10)
+        print('logged in')
+      except:
+        print('login failed')
+        traceback.print_exc()
+
 
     def go_zed_page():
       print('go zed page')
       time.sleep(10)
-      shadow = browser.wait_until_element_presence(css='kc-global-floating-button').shadow_root
-      zed_btn = browser.find_element(shadow, id='ke-zed-button')
-      browser.click(zed_btn)
-      browser.sleep(10)
-      browser.wait_until_window_number_to_be(2)
-      browser.switch_to_window(1)
+      try:
+        shadow = browser.wait_until_element_presence(css='kc-global-floating-button').shadow_root
+        zed_btn = browser.find_element(shadow, id='ke-zed-button')
+        browser.click(zed_btn)
+        browser.sleep(10)
+        browser.wait_until_window_number_to_be(2)
+        browser.switch_to_window(1)
+      except:
+        print('임직원 button not found')
+        traceback.print_exc()
 
     def my_zed_itinerary():
       print('my zed itinerary')
       # 나의 항공권으로 이동
       try:
-        my_itinerary_btn = browser.wait_until_element_clickable(xpath='//span[text()="나의 항공권"]')
+        my_itinerary_btn = browser.wait_until_element_clickable(xpath='//span[text()="' + indicators[locale]['KE']['ticket_btn'] + '"]')
         browser.click(my_itinerary_btn)
       except:
         print('나의 항공권 button not found')
+        traceback.print_exc()
       
       time.sleep(10)
-      browser.wait_until_element_presence(xpath='//span[text()="예약/리스팅 현황"]')
+      browser.wait_until_element_presence(xpath='//span[text()="' + indicators[locale]['KE']['status_btn'] + '"]')
 
       time.sleep(15)   # StaleElementReferenceException. maybe refering itinerary before it completed.
-      itineraries = browser.find_elements(xpath='//span[text()="예약/리스팅 현황"]/following-sibling::div/div')
+      itineraries = browser.find_elements(xpath='//span[text()="' + indicators[locale]['KE']['status_btn'] + '"]/following-sibling::div/div')
       listings = []
       for it in itineraries:
         for idx, ch in enumerate(browser.find_children(it, xpath='./div')):
@@ -108,7 +148,7 @@ if __name__ == '__main__':
       if comment != None:
         content += comment + '\n'
       endline = '=' * (len(content)-1) + '\n'
-      lines = traceback.format_exception(value=e).split('\n')
+      lines = traceback.format_exc().split('\n')
       for l in lines:
         if(len(content) + len(l) < 2000):
           content += l + '\n'
@@ -140,8 +180,16 @@ if __name__ == '__main__':
 
 
     def go_zed_home():
-      browser.get('https://zed.koreanair.com/')
-      browser.wait_until_element_clickable(xpath='//span[text()="나의 항공권"]')
+      print('go zed home')
+      try:
+        if(browser.get_current_url() != 'https://www.koreanair.com/'):
+          browser.get('https://www.koreanair.com/')
+        go_zed_page()
+        browser.wait_until_element_clickable(xpath='//span[text()="' + indicators[locale]['KE']['ticket_btn'] + '"]')
+      except:
+        print('go zed home failed')
+        traceback.print_exc()
+
 
     def go_to_oal():
       print('go to oal')
@@ -154,69 +202,169 @@ if __name__ == '__main__':
       if browser.get_current_url() != 'https://zed.koreanair.com/':
         go_zed_home()
 
-      browser.click(xpath='//button[text()="OAL"]')
-      browser.click(xpath='//*[contains(text(), "myIDTravel")]')
-      btns = browser.wait_until_elements_visible(xpath='//*[@role="dialog"]//button') # 0: checkbox, 1: 다음
-      browser.click(btns[0])
-      browser.sleep(3)
-      browser.click(btns[1])
-      browser.sleep(5)
+      try:
+        browser.click(xpath='//button[text()="OAL"]')
+        browser.click(xpath='//*[contains(text(), "myIDTravel")]')
 
-      browser.wait_until_window_number_to_be(3)
-      browser.switch_to_window(2)
+        # EULA
+        print('myIDTravel EULA')
+        btns = browser.wait_until_elements_visible(xpath='//*[@role="dialog"]//button') # 0: checkbox, 1: 다음
+        browser.click(btns[0])
+        browser.sleep(3)
+        browser.click(btns[1])
+        browser.sleep(5)
 
-      browser.wait_until_element_presence(xpath='//div[@class="modal-content"]')
-      browser.click(xpath='//div[@class="modal-content"]//input')
-      browser.click(xpath='//div[@class="modal-content"]//button')
+        browser.wait_until_window_number_to_be(3)
+        browser.switch_to_window(2)
 
-      listings = []
-      time.sleep(10)
-      itineraries = browser.find_elements(xpath='//div[@class[contains(., "_flightCardContainer_")]]')
-      for it in itineraries:
-        for idx, ch in enumerate(browser.find_children(it, xpath='./div')):
-          # print(f'{idx} - {ch.text}')
-          if idx == 0:  # PNR
-            tokens = ch.text.strip().splitlines()
-            listing_info = {}
-            listing_info['id'] = tokens[1].split(':')[1]
-          elif idx == 1: # passengers
-            listing_info['passenger'] = ch.text.replace('\n', ', ')
-          elif '_startPageFlightCardContainer_' in ch.get_attribute('class'): # route
-            routes = browser.find_elements(ch, xpath='.//div[@class[contains(., "_startPageFlightCardDetails_")]]')
-            for route in routes:
+        browser.wait_until_element_presence(xpath='//div[@class="modal-content"]')
+        browser.click(xpath='//div[@class="modal-content"]//input')
+        browser.click(xpath='//div[@class="modal-content"]//button')
+
+        listings = []
+        time.sleep(10)
+        itineraries = browser.find_elements(xpath='//div[@class[contains(., "_flightCardContainer_")]]')
+        for it in itineraries:
+          for idx, ch in enumerate(browser.find_children(it, xpath='./div')):
+            # print(f'{idx} - {ch.text}')
+            if idx == 0:  # PNR
               tokens = ch.text.strip().splitlines()
-              listing_info['flt'] = tokens[0]
-              listing_info['date'] = conv_date(tokens[1])
-              dep_airport = tokens[2].split(' - ')[0]
-              arr_airport = tokens[2].split(' - ')[1]
-              dep_time = tokens[3].split(' - ')[0].replace(':','')
-              arr_time = tokens[3].split(' - ')[1].split(' | ')[0].replace(':','')
-              listing_info['dep'] = f"{dep_airport}{dep_time}"
-              listing_info['arr'] = f"{arr_airport}{arr_time}"
-              listing_info['duration'] = tokens[3].split(' | ')[1].replace(':','')
-              listing_info['booking_cls'] = tokens[4]
+              listing_info = {}
+              try:
+                listing_info['id'] = tokens[1].split(':')[1]
+              except:
+                listing_info['id'] = tokens[1]
+            elif idx == 1: # border
+              continue
+            elif idx == 2: # passengers
+              listing_info['passenger'] = ch.text.replace('\n', ', ')
+            elif '_startPageFlightCardContainer_' in ch.get_attribute('class'): # route
+              routes = browser.find_elements(ch, xpath='.//div[@class[contains(., "_startPageFlightCardDetails_")]]')
+              for route in routes:
+                tokens = ch.text.strip().splitlines()
+                listing_info['flt'] = tokens[0]
+                listing_info['date'] = conv_date(tokens[1])
+                dep_airport = tokens[2].split(' - ')[0]
+                arr_airport = tokens[2].split(' - ')[1]
+                dep_time = tokens[3].split(' - ')[0].replace(':','')
+                arr_time = tokens[3].split(' - ')[1].split(' | ')[0].replace(':','')
+                listing_info['dep'] = f"{dep_airport}{dep_time}"
+                listing_info['arr'] = f"{arr_airport}{arr_time}"
+                listing_info['duration'] = tokens[3].split(' | ')[1].replace(':','')
+                listing_info['booking_cls'] = tokens[4]
 
-              # query detail
-              expand_btn = browser.find_element(route, xpath='.//div[@class[contains(., "_containerFlightLoadRBD_")]]')
-              for i in range(0, 100):
-                try:
-                  browser.click(expand_btn)
-                  break
-                except:
-                  browser.find_element(tag='body').send_keys("\ue015")  # Keys.DOWN
-                  browser.mouse_over(expand_btn)
-                  time.sleep(5)
+                # query detail
+                expand_btn = browser.find_element(route, xpath='.//div[@class[contains(., "_containerFlightLoadRBD_")]]')
+                for i in range(0, 100):
+                  try:
+                    browser.click(expand_btn)
+                    break
+                  except:
+                    browser.find_element(tag='body').send_keys("\ue015")  # Keys.DOWN
+                    browser.mouse_over(expand_btn)
+                    time.sleep(5)
 
-              detail_popup = browser.wait_until_element_visible(xpath='//div[@class[contains(., "_popupContainer_")]]')
-              listing_info['status'] = detail_popup.text.replace('\n', ' ')
-              if (cr_point:=listing_info['status'].find('Y')) != -1:
-                listing_info['status'] = listing_info['status'][:cr_point-1] + '\n' + listing_info['status'][cr_point:]
+                detail_popup = browser.wait_until_element_visible(xpath='//div[@class[contains(., "_popupUpcomingContainer_")]]')
+                listing_info['status'] = detail_popup.text.replace('\n', ' ')
+                if (cr_point:=listing_info['status'].find('Y')) != -1:
+                  listing_info['status'] = listing_info['status'][:cr_point-1] + '\n' + listing_info['status'][cr_point:]
 
-              browser.click(expand_btn)
-              time.sleep(3)
-              browser.wait_until_element_invisible(xpath='//div[@class[contains(., "_popupContainer_")]]')
-              listings.append(listing_info.copy())
-      return listings
+                browser.click(expand_btn)
+                time.sleep(3)
+                browser.wait_until_element_invisible(xpath='//div[@class[contains(., "_popupUpcomingContainer_")]]')
+                listings.append(listing_info.copy())  
+        return listings
+      except:
+        print('go to oal failed')
+        traceback.print_exc()
+        return None
+
+    # port: IATA Code (capital)
+    # date: YYYYMMDD
+    def query_zed_status(dep_port, arr_port, dep_date, arr_date):
+      print(f'query zed status: {dep_port}->{arr_port} ({dep_date}~{arr_date})')
+      go_zed_home()
+      result = {
+        dep_port,
+        arr_port,
+        dep_date,
+        arr_date
+      }
+
+      def find_calendar(year, month):
+        for i in range(5):  # it may not start with today. move to leftest calendar.
+          arrows = browser.find_elements(xpath='//div[@data-side="bottom"]/div/div/div//*[name()="svg"]')
+          browser.click(arrows[0])
+          time.sleep(2)
+
+        for i in range(5):
+          calenders = browser.wait_until_elements_presence(xpath='//div[@data-side="bottom"]/div/div/div')
+          if f'{year}.{month}' in calenders[0].text:
+            return calenders[0]
+          elif'{year}.{month}' in calenders[1].text:
+            return calenders[1]
+          else:
+            right_arrow = browser.find_element(calenders[1], xpath='.//*[name()="svg"]')
+            browser.click(right_arrow)
+          time.sleep(2)
+        return None
+      
+      def select_date_in_calendar(year, month, day):
+        try:
+          calendar = find_calendar(year, month)
+          if(calendar == None):
+            print('given date is not in window')
+            return False
+
+          day_dom = browser.find_element(calendar, xpath='.//span[text()="' + day + '"]')
+          browser.click(day_dom)
+          return True
+        except:
+          print('select date failed')
+          traceback.print_exc()
+          return False
+
+      
+      try:
+        dep_year = dep_date[:4]
+        dep_month = dep_date[4:6]
+        dep_day = dep_date[6:]
+        arr_year = arr_date[:4]
+        arr_month = arr_date[4:6]
+        arr_day = arr_date[6:]
+
+        # 0: dep_port
+        # 1: arr_port
+        # 2: dep/arr date
+        # 3: passenger
+        input_doms = browser.find_elements(xpath='//button[@aria-haspopup="dialog"]')
+        
+        # dep_port
+        browser.click(input_doms[0])
+        browser.wait_until_element_clickable(xpath='//input[@placeholder="' + indicators[locale]['KE']['airport'] + '"]').send_keys(dep_port)
+        browser.click(browser.wait_until_element_clickable(xpath=f'//div[@data-value="{dep_port}"]'))
+
+        # arr_port
+        browser.click(input_doms[1])
+        browser.wait_until_element_clickable(xpath='//input[@placeholder="' + indicators[locale]['KE']['airport'] + '"]').send_keys(arr_port)
+        browser.click(browser.wait_until_element_clickable(xpath=f'//div[@data-value="{arr_port}"]'))
+
+        # dep/arr date
+        browser.click(input_doms[2])  # open calendar
+        # select dep date calendar
+
+        if select_date_in_calendar(dep_year, dep_month, dep_day) == False:
+          print('cannot select depature date in calendar')
+          return result
+        
+        if select_date_in_calendar(arr_year, arr_month, arr_day) == False:
+          print('cannot select arrival date in calendar')
+          return result
+
+      except:
+        print('query zed status failed')
+        traceback.print_exc()
+        return result
 
     browser = None
     try:
@@ -231,6 +379,9 @@ if __name__ == '__main__':
           settings = json.load(settings_file)
         with open(root_path + 'priv.json', mode="rt") as priv_file:
           priv = json.load(priv_file)
+        with open(root_path + 'queries.json', mode="rt") as queries_file:
+          queries = json.load(queries_file)
+        
       except Exception as e:
         notice_error('configuration file loading failed.')
         raise e
@@ -243,15 +394,21 @@ if __name__ == '__main__':
 
       handle_cookie()      
       login()
-      go_zed_page()
+      # go_zed_page()
 
-      listings = my_zed_itinerary()
-      notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
+      # listings = my_zed_itinerary()
+      # notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
+
+      # if 'reservation' in queries['query'].keys():
+      #   for q in queries['reservation']:
+      #     if q['ZedType'] != 'KE':
+      #       continue
+
+      #     query_zed_status(q['DepPort'], q['ArrPort'], q['DepDate'], q['ReturnDate'])
 
       oal_listings = go_to_oal()
       notice_data(oal_listings, '[{date} {flt}]\n{status}\n<{booking_cls}>{passenger}\n{dep}-{arr} ({duration})\n({id})')
       
-
     except Exception as e:
       traceback.print_exc()
       notice_error()
