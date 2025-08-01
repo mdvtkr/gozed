@@ -1,0 +1,12 @@
+{
+    "reservation": [
+        {
+            "ZedType": "KE",
+            "DepPort": "ICN",
+            "ArrPort": "AMS",
+            "DepDate": "20250916",
+            "ReturnDate": "20250921",
+            "RoundTrip": "true"
+        }
+    ]
+}
