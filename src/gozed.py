@@ -394,10 +394,10 @@ if __name__ == '__main__':
 
       handle_cookie()      
       login()
-      # go_zed_page()
+      go_zed_page()
 
-      # listings = my_zed_itinerary()
-      # notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
+      listings = my_zed_itinerary()
+      notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
 
       # if 'reservation' in queries['query'].keys():
       #   for q in queries['reservation']:
