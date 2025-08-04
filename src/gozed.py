@@ -91,10 +91,11 @@ if __name__ == '__main__':
       try:
         shadow = browser.wait_until_element_presence(css='kc-global-floating-button').shadow_root
         zed_btn = browser.find_element(shadow, id='ke-zed-button')
+        lastWndCnt = len(browser.driver.window_handles)
         browser.click(zed_btn)
         browser.sleep(10)
-        browser.wait_until_window_number_to_be(2)
-        browser.switch_to_window(1)
+        browser.wait_until_window_number_to_be(lastWndCnt+1)
+        browser.switch_to_window(lastWndCnt)
       except:
         print('임직원 button not found')
         traceback.print_exc()
@@ -203,6 +204,7 @@ if __name__ == '__main__':
         go_zed_home()
 
       try:
+        lastWndCnt = len(browser.driver.window_handles)
         browser.click(xpath='//button[text()="OAL"]')
         browser.click(xpath='//*[contains(text(), "myIDTravel")]')
 
@@ -214,8 +216,8 @@ if __name__ == '__main__':
         browser.click(btns[1])
         browser.sleep(5)
 
-        browser.wait_until_window_number_to_be(3)
-        browser.switch_to_window(2)
+        browser.wait_until_window_number_to_be(lastWndCnt+1)
+        browser.switch_to_window(lastWndCnt)
 
         browser.wait_until_element_presence(xpath='//div[@class="modal-content"]')
         browser.click(xpath='//div[@class="modal-content"]//input')
