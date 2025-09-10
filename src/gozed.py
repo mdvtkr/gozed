@@ -165,17 +165,20 @@ if __name__ == '__main__':
 
     def notice_data(items, format_string):
       discord = DiscordWebhook(url=priv['Discord']['notice'])
-      content = f'====== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} =====\n'
-      endline = '=' * (len(content)-1) + '\n'
-      for item in items:
-        l = format_string.format(**item)
-        if(len(content) + len(l) < 2000):
-          content += l + '\n'
-        else:
-          discord.set_content(content)
-          discord.execute()
-          content = l + '\n'
-      content += endline
+      if(items == None or len(items) == 0):
+        content = "nothing to send"
+      else:
+        content = f'====== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} =====\n'
+        endline = '=' * (len(content)-1) + '\n'
+        for item in items:
+          l = format_string.format(**item)
+          if(len(content) + len(l) < 2000):
+            content += l + '\n'
+          else:
+            discord.set_content(content)
+            discord.execute()
+            content = l + '\n'
+        content += endline
       discord.set_content(content)
       discord.execute()
 
@@ -184,6 +187,7 @@ if __name__ == '__main__':
       print('go zed home')
       try:
         if(browser.get_current_url() != 'https://www.koreanair.com/'):
+          print('go to homepage')
           browser.get('https://www.koreanair.com/')
         go_zed_page()
         browser.wait_until_element_clickable(xpath='//span[text()="' + indicators[locale]['KE']['ticket_btn'] + '"]')
@@ -202,7 +206,8 @@ if __name__ == '__main__':
 
       if browser.get_current_url() != 'https://zed.koreanair.com/':
         go_zed_home()
-
+        
+      time.sleep(10)
       try:
         lastWndCnt = len(browser.driver.window_handles)
         browser.click(xpath='//button[text()="OAL"]')
@@ -243,7 +248,7 @@ if __name__ == '__main__':
             elif '_startPageFlightCardContainer_' in ch.get_attribute('class'): # route
               routes = browser.find_elements(ch, xpath='.//div[@class[contains(., "_startPageFlightCardDetails_")]]')
               for route in routes:
-                tokens = ch.text.strip().splitlines()
+                tokens = route.text.strip().splitlines()
                 listing_info['flt'] = tokens[0]
                 listing_info['date'] = conv_date(tokens[1])
                 dep_airport = tokens[2].split(' - ')[0]
