@@ -404,7 +404,7 @@ if __name__ == '__main__':
       go_zed_page()
 
       listings = my_zed_itinerary()
-      notice_data(listings, '[{date} {flt}]\n{passenger} - {status}\n{dep}-{arr}\n({id})')
+      notice_data(listings, '[{date} {flt} ({id})]\n{dep}-{arr}\n{passenger} - {status}')
 
       # if 'reservation' in queries['query'].keys():
       #   for q in queries['reservation']:
@@ -414,7 +414,7 @@ if __name__ == '__main__':
       #     query_zed_status(q['DepPort'], q['ArrPort'], q['DepDate'], q['ReturnDate'])
 
       oal_listings = go_to_oal()
-      notice_data(oal_listings, '[{date} {flt}]\n{status}\n<{booking_cls}>{passenger}\n{dep}-{arr} ({duration})\n({id})')
+      notice_data(oal_listings, '[{date} {flt} ({id})]\n{dep}-{arr} ({duration})\n{status}\n{passenger} (CLS: {booking_cls})')
       
     except Exception as e:
       traceback.print_exc()
