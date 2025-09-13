@@ -230,6 +230,19 @@ if __name__ == '__main__':
 
         listings = []
         time.sleep(10)
+        try:
+          for i in range(100):
+            browser.arrow_down()
+          browser.click(css='#loadMoreButtonHome')
+          for i in range(100):
+            browser.arrow_down()
+          time.sleep(5)
+        except:
+          pass
+        finally:
+          for i in range(200):
+            browser.arrow_up()
+
         itineraries = browser.find_elements(xpath='//div[@class[contains(., "_flightCardContainer_")]]')
         for it in itineraries:
           for idx, ch in enumerate(browser.find_children(it, xpath='./div')):
