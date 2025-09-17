@@ -131,6 +131,7 @@ if __name__ == '__main__':
           elif idx == 1:  # routes
             routes = browser.find_children(ch, xpath='./div')
             for route in routes:
+              print(f'route: {route.text}')
               tokens = route.text.strip().splitlines()
               listing_info['status'] = tokens[1]
               listing_info['dday'] = tokens[0]
